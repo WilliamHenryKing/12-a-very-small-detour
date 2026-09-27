@@ -36,15 +36,15 @@ body {
 .panel {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  gap: 10px;
+  padding: 12px 16px calc(14px + env(safe-area-inset-bottom));
   background: var(--color-case);
   border-top: 1px solid #ffffff14;
   overflow-y: auto;
 }
 
 .panel figure {
-  max-width: min(100%, 31svh);
+  max-width: min(100%, 29svh);
   margin-inline: auto;
 }
 

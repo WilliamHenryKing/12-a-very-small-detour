@@ -10,7 +10,7 @@ import {
   Mesh,
   MeshStandardMaterial,
   type Object3D,
-  PCFSoftShadowMap,
+  PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   Raycaster,
@@ -63,7 +63,7 @@ export class World {
     r.toneMapping = AgXToneMapping;
     r.toneMappingExposure = 1.15;
     r.shadowMap.enabled = true;
-    r.shadowMap.type = PCFSoftShadowMap;
+    r.shadowMap.type = PCFShadowMap;
     r.domElement.className = "block h-full w-full touch-none";
     r.domElement.setAttribute("aria-hidden", "true");
     host.appendChild(r.domElement);
@@ -113,7 +113,7 @@ export class World {
     // Fit the board (radius ~3.4 on the table) inside whichever field of view is tighter.
     const vfov = (this.camera.fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect);
-    const dist = 3.5 / Math.sin(Math.min(vfov, hfov) / 2);
+    const dist = 3.15 / Math.sin(Math.min(vfov, hfov) / 2);
     const tilt = 0.95;
     this.camera.position.set(0, Math.sin(tilt) * dist, Math.cos(tilt) * dist + 0.1);
     this.camera.lookAt(0, -0.25, 0.25);

@@ -35,16 +35,16 @@ export function LegCard({ state, route, note }: Props) {
     ? `Route open: ${route.length - 1} squares to ${dest}.`
     : `No way through to ${dest} (${gridRef(leg.to)}) yet.`;
   return (
-    <section aria-labelledby="leg-title" className="space-y-2">
+    <section aria-labelledby="leg-title" className="space-y-1.5 lg:space-y-2">
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-brass">
         Leg {state.leg + 1} of {LEGS.length}
       </p>
       <h1 id="leg-title" className="text-lg font-bold leading-tight text-cream sm:text-xl">
         {leg.title}
       </h1>
-      <p className="text-[13px] leading-snug text-cream/80">{leg.brief}</p>
+      <p className="text-[12.5px] leading-snug text-cream/80 lg:text-[13px]">{leg.brief}</p>
       {tip ? (
-        <p className="rounded-md border border-brass/50 bg-brass/10 px-3 py-2 text-[12.5px] leading-snug text-cream">
+        <p className="rounded-md border border-brass/50 bg-brass/10 px-3 py-1.5 text-[12px] lg:py-2 lg:text-[12.5px] leading-snug text-cream">
           {tip}
         </p>
       ) : null}

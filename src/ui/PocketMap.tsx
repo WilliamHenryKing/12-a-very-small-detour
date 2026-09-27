@@ -144,9 +144,9 @@ export function PocketMap(props: Props) {
       <figcaption className="mt-2 flex items-center justify-between gap-3 text-[11px] text-cream/70">
         <span className="flex items-center gap-2">
           <span className="scale-bar" aria-hidden="true" />
-          {SQUARE_METRES} m per square
+          {SQUARE_METRES} m / square
         </span>
-        <span>Little Nothing Fell · sheet 12</span>
+        <span className="hidden sm:inline">Little Nothing Fell · sheet 12</span>
         <span>
           <span aria-hidden="true">▲</span> North
         </span>

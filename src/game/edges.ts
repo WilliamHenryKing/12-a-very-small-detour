@@ -52,6 +52,6 @@ const NAMES: Record<number, string> = { [N]: "north", [E]: "east", [S]: "south",
 export function describeMask(mask: number): string {
   const ends = DIRS.filter((d) => mask & d).map((d) => NAMES[d]);
   if (ends.length === 0) return "no trail";
-  if (ends.length === 1) return `trail ends ${ends[0]}`;
-  return `trail ${ends.join("–")}`;
+  if (ends.length === 1) return `trail runs ${ends[0]}`;
+  return `trail joins ${ends.slice(0, -1).join(", ")} and ${ends[ends.length - 1]}`;
 }
