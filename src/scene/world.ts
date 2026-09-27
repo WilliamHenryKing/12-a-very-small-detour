@@ -189,7 +189,7 @@ export class World {
   }
 
   /** Walk the traveller square by square along a route. */
-  walk(route: number[]): Promise<void> {
+  walk(route: number[], onStep: (cell: number) => void): Promise<void> {
     const tl = gsap.timeline();
     const step = this.pace ? 0.42 : 0.001;
     for (let i = 1; i < route.length; i++) {
@@ -197,6 +197,7 @@ export class World {
       const to = cellCentre(route[i] ?? 0);
       const heading = Math.atan2(to.x - from.x, to.z - from.z);
       tl.set(this.walker.rotation, { y: heading });
+      tl.call(onStep, [route[i] ?? 0]);
       tl.to(this.walker.position, { x: to.x, z: to.z, duration: step, ease: "none" });
       if (this.pace) {
         tl.to(

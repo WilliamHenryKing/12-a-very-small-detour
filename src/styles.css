@@ -1,0 +1,231 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #2b2118;
+  --color-cream: #f2ead6;
+  --color-brass: #d4ad55;
+  --color-vermilion: #d8402a;
+  --color-vermilion-soft: #ff8f6b;
+  --color-table: #1a2327;
+  --color-case: #11181b;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--color-table);
+  color: var(--color-cream);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:focus-visible {
+  outline: 3px solid #ffd27a;
+  outline-offset: 2px;
+}
+
+.app-shell {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px calc(14px + env(safe-area-inset-bottom));
+  background: var(--color-case);
+  border-top: 1px solid #ffffff14;
+  overflow-y: auto;
+}
+
+.panel figure {
+  max-width: min(100%, 31svh);
+  margin-inline: auto;
+}
+
+@media (min-width: 900px) {
+  .app-shell {
+    grid-template-columns: minmax(0, 1fr) 400px;
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .panel {
+    justify-content: center;
+    gap: 18px;
+    padding: 28px;
+    border-top: 0;
+    border-left: 1px solid #ffffff14;
+  }
+  .panel figure {
+    max-width: 344px;
+  }
+}
+
+/* The pocket map: an oilcloth-bound survey sheet. */
+.map-case {
+  border-radius: 10px;
+  background:
+    repeating-linear-gradient(0deg, #0000 0 3px, #6b553012 3px 4px),
+    repeating-linear-gradient(90deg, #0000 0 3px, #6b55300d 3px 4px), #ece2c6;
+  box-shadow:
+    0 0 0 1px #b8a37a,
+    0 0 0 5px #2a3a3f,
+    0 14px 30px #0008;
+}
+
+.map-cell {
+  position: relative;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: default;
+  perspective: 500px;
+  --pin: #55534d;
+}
+.map-cell[data-loose] {
+  cursor: pointer;
+  --pin: #d4ad55;
+}
+.map-cell:focus-visible {
+  z-index: 2;
+  outline-offset: 1px;
+}
+
+.piece {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.face {
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  border-radius: 2px;
+  backface-visibility: hidden;
+  box-shadow: 0 1px 2px #0005;
+}
+.map-cell[data-loose]:hover .piece {
+  filter: brightness(1.06) saturate(1.1);
+}
+.face.under {
+  transform: rotateX(180deg);
+}
+.rivets {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 9% 9%, var(--pin) 0 5%, #0000 6%),
+    radial-gradient(circle at 91% 9%, var(--pin) 0 5%, #0000 6%),
+    radial-gradient(circle at 91% 91%, var(--pin) 0 5%, #0000 6%),
+    radial-gradient(circle at 9% 91%, var(--pin) 0 5%, #0000 6%);
+}
+.axle {
+  position: absolute;
+  inset: 43% 0;
+  background: linear-gradient(90deg, var(--pin) 0 7%, #0000 7% 93%, var(--pin) 93%);
+}
+
+.walker-mark,
+.dest-mark {
+  position: absolute;
+  z-index: 3;
+  translate: -50% -50%;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.walker-mark {
+  width: 14px;
+  height: 14px;
+  background: #2c5d7c;
+  border: 2px solid #fff8e6;
+  box-shadow: 0 1px 3px #0008;
+  transition:
+    left 0.4s linear,
+    top 0.4s linear;
+}
+.dest-mark {
+  width: 28px;
+  height: 28px;
+  border: 3px solid var(--color-vermilion);
+  animation: dest-pulse 1.6s ease-in-out infinite;
+}
+@keyframes dest-pulse {
+  50% {
+    transform: scale(1.18);
+    opacity: 0.6;
+  }
+}
+
+.scale-bar {
+  display: inline-block;
+  width: 44px;
+  height: 6px;
+  border: 1px solid currentColor;
+  background: linear-gradient(90deg, currentColor 50%, #0000 50%);
+}
+
+.btn-primary {
+  min-height: 46px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--color-vermilion);
+  color: #fff8ef;
+  font: 600 15px / 1 var(--font-sans);
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.btn-primary:hover:not(:disabled) {
+  background: #e4532f;
+}
+.btn-primary:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn-primary:disabled {
+  background: #2c3538;
+  color: #f2ead699;
+  cursor: default;
+}
+
+.ending-veil {
+  background: #0a0e1066;
+  animation: fade-in 0.8s ease both;
+}
+.ending-card {
+  background: #f2ead6;
+  border: 1px solid #b8a37a;
+  animation: rise 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .piece,
+  .walker-mark,
+  .btn-primary {
+    transition: none;
+  }
+  .dest-mark,
+  .ending-veil,
+  .ending-card {
+    animation: none;
+  }
+}
