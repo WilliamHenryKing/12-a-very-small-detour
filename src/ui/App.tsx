@@ -1,5 +1,6 @@
 // Wiring: one game state drives both the pocket map and the survey model.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { sound } from "../audio/sound";
 import { LEGS, TILES } from "../game/map";
 import {
   arrive,
@@ -14,6 +15,7 @@ import type { GameState } from "../game/types";
 import { World } from "../scene/world";
 import { Ending } from "./Ending";
 import { LegCard } from "./LegCard";
+import { MuteButton } from "./MuteButton";
 import { PocketMap } from "./PocketMap";
 
 const reducedMotion =
@@ -44,12 +46,41 @@ export function App({ onReady }: { onReady(): void }) {
     if (busy.current) return;
     const tile = TILES[cell];
     if (!canOperate(s, cell)) {
+      sound.play("pinned");
       const why = tile?.kind === "fixed" ? "is glued to the map" : "is still pinned";
       setNote(`${tile?.place ?? "That piece"} ${why}.`);
       return;
     }
     setNote("");
-    setState(operate(s, cell));
+    const next = operate(s, cell);
+    const lag = reducedMotion ? 0.05 : 1;
+    if (tile?.kind === "flip") {
+      sound.play("flip");
+      sound.play("land", 0.7 * lag);
+    } else {
+      sound.play("turn");
+      sound.play("settle", 0.4 * lag);
+    }
+    if (!findRoute(s) && findRoute(next)) sound.play("route-open", 0.55 * lag);
+    setState(next);
+  }, []);
+
+  // Audio starts on the first gesture; M toggles sound anywhere.
+  useEffect(() => {
+    const unlock = () => sound.unlock();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "m" || e.ctrlKey || e.metaKey || e.altKey) return;
+      sound.unlock();
+      sound.toggle();
+    };
+    window.addEventListener("pointerdown", unlock, { capture: true, once: true });
+    window.addEventListener("keydown", unlock, { capture: true, once: true });
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("pointerdown", unlock, { capture: true });
+      window.removeEventListener("keydown", unlock, { capture: true });
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   useEffect(() => {
@@ -62,7 +93,10 @@ export function App({ onReady }: { onReady(): void }) {
           tryOperate(cell);
         },
         onHover: (cell) => world.current?.setFocus(cell),
-        onFirstFrame: onReady,
+        onFirstFrame: () => {
+          onReady();
+          sound.prefetch();
+        },
         reducedMotion,
       });
     } catch {
@@ -83,12 +117,18 @@ export function App({ onReady }: { onReady(): void }) {
     if (!route || busy.current) return;
     setWalking(true);
     setNote("");
+    sound.play("set-off");
     const w = world.current;
-    if (w) await w.walk(route, setWalkerAt);
+    const step = (cell: number) => {
+      setWalkerAt(cell);
+      sound.play("step");
+    };
+    if (w) await w.walk(route, step);
     const next = arrive(state);
     setWalkerAt(next.at);
     setState(next);
     setWalking(false);
+    sound.play(next.finished ? "finale" : "arrive");
     if (next.finished) {
       w?.dusk(true);
       window.setTimeout(() => setEnding(true), reducedMotion ? 0 : 1400);
@@ -99,6 +139,7 @@ export function App({ onReady }: { onReady(): void }) {
 
   const replay = () => {
     const fresh = createState();
+    sound.play("fold");
     world.current?.dusk(false);
     setEnding(false);
     setState(fresh);
@@ -115,6 +156,7 @@ export function App({ onReady }: { onReady(): void }) {
             The relief model needs WebGL. The pocket map still works.
           </p>
         ) : null}
+        <MuteButton />
       </div>
       <aside className="panel" aria-label="Expedition kit">
         <LegCard state={state} route={route} note={note} />
@@ -127,6 +169,7 @@ export function App({ onReady }: { onReady(): void }) {
           onActive={setActive}
           onHover={(c) => world.current?.setFocus(c)}
           onOperate={tryOperate}
+          onNudge={() => sound.play("tick")}
         />
         <button
           type="button"

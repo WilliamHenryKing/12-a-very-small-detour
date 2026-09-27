@@ -15,6 +15,7 @@ interface Props {
   onActive(cell: number): void;
   onHover(cell: number | null): void;
   onOperate(cell: number): void;
+  onNudge(): void;
 }
 
 const COL_LABELS = Array.from({ length: COLS }, (_, c) => String.fromCharCode(65 + c));
@@ -54,6 +55,7 @@ export function PocketMap(props: Props) {
     const c = Math.min(COLS - 1, Math.max(0, colOf(cell) + (d[0] ?? 0)));
     const r = Math.min(ROWS - 1, Math.max(0, rowOf(cell) + (d[1] ?? 0)));
     const next = cellOf(c, r);
+    if (next !== cell) props.onNudge();
     props.onActive(next);
     buttons.current[next]?.focus();
   };
