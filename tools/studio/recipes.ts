@@ -91,8 +91,8 @@ const landmark: Build = (seed, index) => {
 
 export const project = { id: "12-a-very-small-detour", name: "A VERY SMALL DETOUR", background: 0x2f2b24 };
 export const families: Recipes["families"] = [
-  { id: "terrain-tile", count: 64, voxel: 0.005, keep: 0.25, build: tile },
-  { id: "landmark", count: 24, voxel: 0.0012, keep: 0.3, build: landmark },
+  { id: "terrain-tile", count: 128, voxel: 0.005, keep: 0.25, build: tile },
+  { id: "landmark", count: 48, voxel: 0.0012, keep: 0.3, build: landmark },
 ];
 export const textures: Recipes["textures"] = [
   { id: "map-paper", ramp: [0xd9c7a0, 0xe8dcc0, 0xf2ead6], layers: [{ kind: "fibres", scale: 48, stretch: 4 }, { kind: "fbm", scale: 6, weight: 0.5 }], roughness: [0.8, 0.95], normal: 0.6 },
