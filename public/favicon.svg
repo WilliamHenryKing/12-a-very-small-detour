@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>A VERY SMALL DETOUR</title>
+  <rect width="64" height="64" rx="14" fill="#1f2a24"/>
+  <path d="M10 14 23 10l18 4 13-4v40l-13 4-18-4-13 4z" fill="#efe4c8"/>
+  <path d="M23 10v40M41 14v40" stroke="#c9b98f" stroke-width="1.4"/>
+  <path d="M10 14 23 10v40l-13 4z" fill="#7da15b" opacity="0.55"/>
+  <path d="M41 14l13-4v40l-13 4z" fill="#5e8fb0" opacity="0.4"/>
+  <path d="M16 44c6-2 5-10 12-12s7-10 14-11" fill="none" stroke="#d9543f" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="3.5 3"/>
+  <circle cx="16" cy="44" r="3" fill="#2f5e86"/>
+  <circle cx="44" cy="21" r="3.4" fill="none" stroke="#d9543f" stroke-width="2"/>
+</svg>
