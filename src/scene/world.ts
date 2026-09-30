@@ -21,9 +21,12 @@ import {
 } from "three";
 import type { GameState } from "../game/types";
 import { Board, cellCentre, SLAB } from "./board";
+import { Opening } from "./opening";
 import { COLORS } from "./palette";
 import { destinationPin, traveller } from "./props";
+import { disposeTree } from "./resources";
 import { TRAIL_Y } from "./terrain";
+import { WalkMotion } from "./walk";
 
 export interface WorldOptions {
   onPick(cell: number): void;
@@ -35,20 +38,27 @@ export interface WorldOptions {
 const STAND_Y = SLAB + TRAIL_Y;
 
 export class World {
+  readonly opening = new Opening();
   private readonly renderer: WebGLRenderer;
   private readonly scene = new Scene();
   private readonly camera = new PerspectiveCamera(32, 1, 0.1, 100);
   private readonly board = new Board();
   private readonly walker: Group = traveller();
+  private readonly walking = new WalkMotion(this.walker, STAND_Y);
   private readonly pin: Group = destinationPin();
   private readonly sun = new DirectionalLight(COLORS.sun, 2.6);
   private readonly sky = new HemisphereLight(COLORS.sky, COLORS.ground, 1.15);
   private readonly ray = new Raycaster();
   private readonly observer: ResizeObserver;
-  private readonly pace: number;
+  private pace: number;
   private hovered: number | null = null;
   private drawn = false;
-  private down: { x: number; y: number } | null = null;
+  private down: { x: number; y: number; pointerId: number } | null = null;
+  private interactive = true;
+  private disposed = false;
+  private lastFrame = 0;
+  private drawSize = new Vector2();
+  private pendingSize = new Vector2(1, 1);
   private readonly pinBase = STAND_Y + 0.5;
 
   constructor(
@@ -101,15 +111,18 @@ export class World {
     el.addEventListener("pointerdown", this.onDown);
     el.addEventListener("pointerup", this.onUp);
     el.addEventListener("pointerleave", this.onLeave);
+    el.addEventListener("pointercancel", this.onCancel);
     r.setAnimationLoop((t) => this.frame(t));
   }
 
   private resize() {
+    if (this.disposed) return;
     const w = Math.max(1, this.host.clientWidth);
     const h = Math.max(1, this.host.clientHeight);
-    this.renderer.setSize(w, h, false);
+    this.pendingSize.set(w, h);
     const aspect = w / h;
     this.camera.aspect = aspect;
+    this.camera.fov = 32;
     // Fit the board (radius ~3.4 on the table) inside whichever field of view is tighter.
     const vfov = (this.camera.fov * Math.PI) / 180;
     const hfov = 2 * Math.atan(Math.tan(vfov / 2) * aspect);
@@ -118,12 +131,23 @@ export class World {
     this.camera.position.set(0, Math.sin(tilt) * dist, Math.cos(tilt) * dist + 0.1);
     this.camera.lookAt(0, -0.25, 0.25);
     this.camera.updateProjectionMatrix();
+    this.opening.rememberPlayView(this.camera);
   }
 
   private frame(t: number) {
+    if (this.disposed) return;
+    // Resize and draw together: clearing a WebGL buffer in ResizeObserver can otherwise
+    // erase the just-rendered frame during the opening's CSS viewport transition.
+    if (!this.drawSize.equals(this.pendingSize)) {
+      this.renderer.setSize(this.pendingSize.x, this.pendingSize.y, false);
+      this.drawSize.copy(this.pendingSize);
+    }
+    const dt = this.lastFrame ? (t - this.lastFrame) / 1000 : 0;
+    this.lastFrame = t;
     const bob = this.pace ? Math.sin(t / 380) * 0.04 : 0;
     this.pin.position.y = this.pinBase + bob;
     this.pin.rotation.y = this.pace ? t / 900 : 0;
+    this.opening.update(this.camera, dt, this.opts.reducedMotion);
     this.renderer.render(this.scene, this.camera);
     if (!this.drawn) {
       this.drawn = true;
@@ -132,7 +156,17 @@ export class World {
   }
 
   private cellAt(e: PointerEvent): number | null {
+    if (!this.interactive || this.walking.active || this.disposed) return null;
     const rect = this.renderer.domElement.getBoundingClientRect();
+    if (
+      !rect.width ||
+      !rect.height ||
+      e.clientX < rect.left ||
+      e.clientX > rect.right ||
+      e.clientY < rect.top ||
+      e.clientY > rect.bottom
+    )
+      return null;
     const p = new Vector2(
       ((e.clientX - rect.left) / rect.width) * 2 - 1,
       -((e.clientY - rect.top) / rect.height) * 2 + 1,
@@ -154,28 +188,70 @@ export class World {
   };
 
   private onDown = (e: PointerEvent) => {
-    this.down = { x: e.clientX, y: e.clientY };
+    if (!this.interactive || this.walking.active || this.disposed || e.button !== 0 || !e.isPrimary)
+      return;
+    this.down = { x: e.clientX, y: e.clientY, pointerId: e.pointerId };
+    this.renderer.domElement.setPointerCapture(e.pointerId);
   };
 
   private onUp = (e: PointerEvent) => {
     const d = this.down;
+    if (d?.pointerId !== e.pointerId) return;
     this.down = null;
+    if (this.renderer.domElement.hasPointerCapture(e.pointerId))
+      this.renderer.domElement.releasePointerCapture(e.pointerId);
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 8) return;
     const cell = this.cellAt(e);
     if (cell !== null) this.opts.onPick(cell);
   };
 
   private onLeave = () => {
+    this.onCancel();
     if (this.hovered === null) return;
     this.hovered = null;
+    this.renderer.domElement.style.cursor = "";
     this.opts.onHover(null);
   };
 
+  private onCancel = () => {
+    const id = this.down?.pointerId;
+    this.down = null;
+    if (id !== undefined && this.renderer.domElement.hasPointerCapture(id))
+      this.renderer.domElement.releasePointerCapture(id);
+  };
+
+  /** Block picks and highlights during opening, walking, or an ending overlay. */
+  setInteractive(interactive: boolean) {
+    this.interactive = interactive;
+    if (!interactive) {
+      this.onLeave();
+      this.board.setFocus(null);
+    }
+  }
+
+  setReducedMotion(reduced: boolean) {
+    if (this.disposed) return;
+    this.opts.reducedMotion = reduced;
+    this.pace = reduced ? 0 : 1;
+    if (reduced) {
+      this.board.finishAnimations();
+      this.walking.finish();
+      for (const tween of gsap.getTweensOf([
+        this.sun.color,
+        this.sky.color,
+        this.sun.position,
+        this.sun,
+      ]))
+        tween.totalProgress(1);
+    }
+  }
+
   /** Bring the model in line with the rules' state. */
   sync(state: GameState, lit: Set<number>, loose: (cell: number) => boolean, dest: number | null) {
+    if (this.disposed) return;
     this.board.sync(state, lit, loose, this.pace);
     const here = cellCentre(state.at);
-    if (!gsap.isTweening(this.walker.position)) this.walker.position.set(here.x, STAND_Y, here.z);
+    if (!this.walking.active) this.walker.position.set(here.x, STAND_Y, here.z);
     this.pin.visible = dest !== null;
     if (dest !== null) {
       const c = cellCentre(dest);
@@ -185,35 +261,25 @@ export class World {
   }
 
   setFocus(cell: number | null) {
-    this.board.setFocus(cell);
+    if (!this.disposed) this.board.setFocus(this.interactive && !this.walking.active ? cell : null);
   }
 
   /** Walk the traveller square by square along a route. */
-  walk(route: number[], onStep: (cell: number) => void): Promise<void> {
-    const tl = gsap.timeline();
-    const step = this.pace ? 0.42 : 0.001;
-    for (let i = 1; i < route.length; i++) {
-      const from = cellCentre(route[i - 1] ?? 0);
-      const to = cellCentre(route[i] ?? 0);
-      const heading = Math.atan2(to.x - from.x, to.z - from.z);
-      tl.set(this.walker.rotation, { y: heading });
-      tl.call(onStep, [route[i] ?? 0]);
-      tl.to(this.walker.position, { x: to.x, z: to.z, duration: step, ease: "none" });
-      if (this.pace) {
-        tl.to(
-          this.walker.position,
-          { y: STAND_Y + 0.06, duration: step / 2, yoyo: true, repeat: 1, ease: "sine.out" },
-          "<",
-        );
-      }
-    }
-    return new Promise((resolve) => {
-      tl.eventCallback("onComplete", () => resolve());
-    });
+  walk(route: number[], onStep: (cell: number) => void): Promise<boolean> {
+    if (this.disposed) return Promise.resolve(false);
+    this.onLeave();
+    this.board.setFocus(null);
+    return this.walking.run(route, onStep, this.pace, this.board.remainingTime());
+  }
+
+  cancelWalk() {
+    this.walking.cancel();
   }
 
   /** Evening falls over the fell for the ending, or lifts again on replay. */
   dusk(on: boolean) {
+    if (this.disposed) return;
+    gsap.killTweensOf([this.sun.color, this.sky.color, this.sun.position, this.sun]);
     const d = this.pace ? 2.4 : 0;
     const sun = new Color(on ? COLORS.dusk : COLORS.sun);
     const sky = new Color(on ? COLORS.duskSky : COLORS.sky);
@@ -224,8 +290,23 @@ export class World {
   }
 
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     this.renderer.setAnimationLoop(null);
+    this.opening.onDone = null;
     this.observer.disconnect();
+    this.walking.cancel();
+    this.board.cancelAnimations();
+    gsap.killTweensOf([this.sun.color, this.sky.color, this.sun.position, this.sun]);
+    this.onCancel();
+    const el = this.renderer.domElement;
+    el.removeEventListener("pointermove", this.onMove);
+    el.removeEventListener("pointerdown", this.onDown);
+    el.removeEventListener("pointerup", this.onUp);
+    el.removeEventListener("pointerleave", this.onLeave);
+    el.removeEventListener("pointercancel", this.onCancel);
+    el.style.cursor = "";
+    disposeTree(this.scene);
     this.renderer.dispose();
     this.renderer.domElement.remove();
   }

@@ -1,0 +1,223 @@
+.app-shell .model-host {
+  position: fixed;
+  inset: 0 var(--kit-width, 0px) var(--kit-height, 0px) 0;
+}
+.app-shell[data-opening="title"] .model-host {
+  inset: 0;
+}
+.app-shell[data-opening="glide"] .model-host {
+  transition:
+    right 2.8s,
+    bottom 2.8s;
+}
+.app-shell[data-opening="title"] .panel,
+.app-shell[data-opening="glide"] .panel {
+  visibility: hidden;
+}
+.app-shell[data-opening="title"] .sound-toggle,
+.app-shell[data-opening="glide"] .sound-toggle {
+  visibility: hidden;
+}
+.opening {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  padding: 7vw;
+  overflow-y: auto;
+  background: linear-gradient(90deg, #111c21ef, #172327ae 36%, #18242800 77%);
+  color: #f2ead6;
+}
+.opening-copy {
+  max-width: 700px;
+}
+.opening-eyebrow {
+  font:
+    500 10px / 1.6 ui-monospace,
+    monospace;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #dfbd7e;
+}
+.opening h1 {
+  font:
+    400 clamp(46px, 5.8vw, 90px) / 1.01 Georgia,
+    serif;
+  letter-spacing: -0.045em;
+  margin: 24px 0;
+}
+.opening h1 em {
+  color: #e9c287;
+  font-weight: 400;
+}
+.opening-premise {
+  font-size: clamp(16px, 1.5vw, 22px);
+  line-height: 1.7;
+  color: #e2e3da;
+  margin: 0 0 34px;
+}
+.opening-button {
+  min-height: 52px;
+  padding: 0 24px;
+  border: 1px solid #d8af71;
+  border-radius: 4px;
+  background: #ce9b4024;
+  color: #f3dfb6;
+  font:
+    500 14px ui-monospace,
+    monospace;
+  cursor: pointer;
+}
+.opening-button:hover {
+  background: #ce9b4042;
+}
+.opening-button span {
+  margin-left: 24px;
+}
+.enter-note {
+  display: block;
+  font:
+    10px ui-monospace,
+    monospace;
+  margin-top: 14px;
+  color: #c4c8be;
+}
+.opening-coordinate {
+  position: absolute;
+  right: 36px;
+  bottom: 32px;
+  text-align: right;
+  font:
+    10px / 1.8 ui-monospace,
+    monospace;
+  letter-spacing: 0.08em;
+  color: #c4c8be;
+}
+.rise {
+  animation: opening-rise 1s both;
+}
+.rise:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.rise:nth-child(3) {
+  animation-delay: 0.3s;
+}
+.rise:nth-child(4) {
+  animation-delay: 0.45s;
+}
+@keyframes opening-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+}
+.detour-guide {
+  position: fixed;
+  left: 24px;
+  top: 24px;
+  width: min(340px, calc(100vw - 48px));
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  z-index: 6;
+  border: 1px solid #b8a77450;
+  border-top: 2px solid #d6ad65;
+  padding: 16px 18px 8px;
+  border-radius: 5px;
+  background: #132023ed;
+  color: #f2ead6;
+}
+.detour-guide p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0 0 8px;
+}
+.detour-guide .opening-eyebrow {
+  font-size: 10px;
+}
+.guide-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: #dfbd7e;
+}
+.guide-foot button {
+  min-height: 36px;
+  color: #d2d7ce;
+  background: none;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.guide-replay {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: 44px;
+  height: 44px;
+  border: 1px solid #c6b27c77;
+  border-radius: 50%;
+  background: #132023ed;
+  color: #f2ead6;
+  z-index: 6;
+  cursor: pointer;
+}
+@media (max-width: 899px) {
+  .detour-guide {
+    top: 64px;
+    left: 12px;
+    width: calc(100vw - var(--kit-width, 0px) - 24px);
+    max-height: calc(100dvh - var(--kit-height, 0px) - 76px);
+    padding: 10px 12px 4px;
+  }
+  .detour-guide p {
+    font-size: 12px;
+  }
+}
+@media (max-width: 699px) and (min-height: 551px) {
+  .opening {
+    align-items: flex-start;
+    padding: max(68px, 10vh) 26px 30px;
+    background: linear-gradient(180deg, #111c21f0, #172327b0 39%, #18242800 83%);
+  }
+  .opening h1 {
+    font-size: clamp(43px, 12vw, 70px);
+    margin: 18px 0;
+  }
+  .opening-premise {
+    font-size: 15px;
+    margin-bottom: 25px;
+  }
+  .opening-coordinate,
+  .enter-note {
+    display: none;
+  }
+}
+@media (max-height: 550px) {
+  .opening {
+    align-items: flex-start;
+    padding: 24px 5vw;
+  }
+  .opening h1 {
+    font-size: 42px;
+    margin: 12px 0;
+  }
+  .opening-premise {
+    font-size: 15px;
+    line-height: 1.5;
+    margin-bottom: 16px;
+  }
+  .opening-coordinate,
+  .enter-note {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rise {
+    animation: none;
+  }
+  .app-shell[data-opening="glide"] .model-host {
+    transition: none;
+  }
+}

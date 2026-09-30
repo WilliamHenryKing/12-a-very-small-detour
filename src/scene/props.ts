@@ -13,6 +13,7 @@ import {
 } from "three";
 import type { Face, Landmark } from "../game/types";
 import { COLORS } from "./palette";
+import { shared } from "./resources";
 import { surfaceY } from "./terrain";
 
 const mat = (color: string, extra: MeshStandardMaterialParameters = {}) =>
@@ -160,3 +161,4 @@ export function destinationPin(): Group {
 export const rivetGeometry = new CylinderGeometry(0.03, 0.03, 0.02, 12);
 export const axleGeometry = new CylinderGeometry(0.034, 0.034, 0.05, 12);
 axleGeometry.rotateZ(Math.PI / 2);
+shared(...Object.values(M), rivetGeometry, axleGeometry);

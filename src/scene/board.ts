@@ -15,6 +15,7 @@ import { TILES } from "../game/map";
 import type { GameState, Kind } from "../game/types";
 import { COLORS } from "./palette";
 import { axleGeometry, hingeMaterials, landmark, rivetGeometry } from "./props";
+import { shared } from "./resources";
 import { BASE, buildFace, type FaceView, setDashes } from "./terrain";
 
 export const PITCH = 1.08;
@@ -36,11 +37,13 @@ interface Piece {
   readonly hardware: Mesh[];
   turns: number;
   flips: number;
+  motion: gsap.core.Timeline | null;
 }
 
 const slabGeometry = new BoxGeometry(1, SLAB, 1);
 const slabMaterial = new MeshStandardMaterial({ color: COLORS.slab, roughness: 0.85 });
 const slabUnderMaterial = new MeshStandardMaterial({ color: COLORS.slabDark, roughness: 0.9 });
+shared(slabGeometry, slabMaterial, slabUnderMaterial);
 
 export class Board {
   readonly group = new Group();
@@ -123,7 +126,7 @@ export class Board {
       pivot.add(h);
     }
     this.group.add(pivot);
-    return { cell, kind, pivot, views, hardware, turns: 0, flips: 0 };
+    return { cell, kind, pivot, views, hardware, turns: 0, flips: 0, motion: null };
   }
 
   /** Match the model to the state; `pace` scales animation time (0 = instant). */
@@ -144,24 +147,43 @@ export class Board {
   }
 
   private turn(p: Piece, delta: number, pace: number) {
+    p.motion?.kill();
+    p.motion = null;
     p.turns += delta;
-    const d = 0.5 * pace;
-    gsap.to(p.pivot.rotation, { y: (-p.turns * Math.PI) / 2, duration: d, ease: "back.out(1.4)" });
-    if (pace > 0) {
-      gsap.to(p.pivot.position, {
-        y: SLAB / 2 + 0.12,
-        duration: d / 2,
-        yoyo: true,
-        repeat: 1,
-        ease: "sine.inOut",
-      });
+    const y = (-p.turns * Math.PI) / 2;
+    if (pace === 0) {
+      p.pivot.rotation.y = y;
+      p.pivot.position.y = SLAB / 2;
+      return;
     }
+    const d = 0.5 * pace;
+    const tl = gsap.timeline({
+      onComplete: () => {
+        p.motion = null;
+      },
+    });
+    p.motion = tl;
+    tl.to(p.pivot.rotation, { y, duration: d, ease: "back.out(1.4)" }, 0)
+      .to(p.pivot.position, { y: SLAB / 2 + 0.12, duration: d / 2, ease: "sine.inOut" }, 0)
+      .to(p.pivot.position, { y: SLAB / 2, duration: d / 2, ease: "sine.inOut" }, d / 2);
   }
 
   private flip(p: Piece, pace: number) {
+    p.motion?.kill();
+    p.motion = null;
     p.flips += 1;
+    if (pace === 0) {
+      p.pivot.rotation.x = p.flips * Math.PI;
+      p.pivot.position.y = SLAB / 2;
+      return;
+    }
     const d = 0.8 * pace;
-    const tl = gsap.timeline();
+    const tl = gsap.timeline({
+      onComplete: () => {
+        p.motion = null;
+      },
+    });
+    p.motion = tl;
     tl.to(p.pivot.position, { y: SLAB / 2 + 0.55, duration: d * 0.35, ease: "power2.out" })
       .to(
         p.pivot.rotation,
@@ -169,7 +191,27 @@ export class Board {
         "<0.1",
       )
       .to(p.pivot.position, { y: SLAB / 2, duration: d * 0.35, ease: "bounce.out" });
-    if (pace === 0) tl.progress(1);
+  }
+
+  /** Time until the last moving trail returns to the table, before a walk may begin. */
+  remainingTime(): number {
+    return Math.max(
+      0,
+      ...this.pieces.map((p) =>
+        p.motion ? (p.motion.totalDuration() - p.motion.totalTime()) / p.motion.timeScale() : 0,
+      ),
+    );
+  }
+
+  finishAnimations() {
+    for (const p of this.pieces) p.motion?.totalProgress(1);
+  }
+
+  cancelAnimations() {
+    for (const p of this.pieces) {
+      p.motion?.kill();
+      p.motion = null;
+    }
   }
 
   setFocus(cell: number | null) {

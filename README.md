@@ -34,6 +34,7 @@
 - **One state, two views:** the pocket map and the terraced relief model are drawn from the same game state and one shared heightfield.
 - **Solver-proven legs:** a breadth-first solver in the tests proves every leg starts closed, can be solved, and that the full journey reaches the summit.
 - **A tactile model:** terraced pieces, brass and iron hinge hardware, props and a tiny traveller.
+- **An unfolding journey:** the title camera surveys the terrain before settling into play, with an optional guide that follows your first turn, walk and flip. Skip it or replay it with `?`.
 - **Sound:** a CC0 folk score, fell wind and birdsong, wooden creaks for turns, flaps for flips and footsteps for every square walked.
 - **Reduced motion respected:** pieces snap instead of swinging and the walk is instant.
 
@@ -57,6 +58,7 @@ bun install --frozen-lockfile
 bun run dev      # http://127.0.0.1:4522/
 bun run check    # tsc, Biome, bun test, production build into dist/
 bun run preview  # http://127.0.0.1:4622/
+bun run e2e      # all four legs, rapid input, ending/replay and touch layouts
 ```
 
 `src/game/` holds the rules, map, trail bitmasks and relief heightfield; `src/scene/` the three.js survey model; `src/ui/` the React HUD; `tests/` the rule and relief tests with the solver.

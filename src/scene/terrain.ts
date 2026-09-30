@@ -18,6 +18,7 @@ import { DIRS, E, N, S, W } from "../game/edges";
 import { heightAt, isWater, TRAIL_H, terrace, trailDistance, treeSpots } from "../game/relief";
 import type { Face } from "../game/types";
 import { COLORS, TERRAIN_SHIFT, TINTS } from "./palette";
+import { shared } from "./resources";
 
 export const STEP = 0.05;
 export const BASE = 0.012;
@@ -81,6 +82,7 @@ function reliefGeometry(face: Face) {
 const dashGeometry = new BoxGeometry(0.05, 0.014, 0.024);
 const pineGeometry = new ConeGeometry(0.045, 0.16, 6);
 pineGeometry.translate(0, 0.08, 0);
+shared(reliefMaterial, waterMaterial, dashIdle, dashLit, pineMaterial, dashGeometry, pineGeometry);
 
 const SPOKE: Record<number, readonly [number, number]> = {
   [N]: [0, -1],

@@ -11,3 +11,6 @@ output/
 *.tsbuildinfo
 .DS_Store
 assets-src/studio/
+
+test-results/
+playwright-report/

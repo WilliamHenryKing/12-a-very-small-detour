@@ -10,8 +10,9 @@ export function MuteButton() {
       type="button"
       className="sound-toggle"
       aria-pressed={!muted}
-      aria-label="Sound (M key)"
-      title="Sound (M)"
+      aria-label="Sound"
+      aria-keyshortcuts="M"
+      title={`${muted ? "Unmute" : "Mute"} (M)`}
       onClick={() => {
         sound.unlock();
         sound.toggle();

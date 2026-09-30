@@ -1,4 +1,4 @@
-// Leg heading, brief, first-time hints and the route status for the current leg.
+// Leg heading, brief and the route status for the current leg.
 import { gridRef } from "../game/edges";
 import { LEGS, TILES } from "../game/map";
 import type { GameState } from "../game/types";
@@ -7,16 +7,6 @@ interface Props {
   state: GameState;
   route: number[] | null;
   note: string;
-}
-
-function hint(state: GameState): string | null {
-  if (state.leg === 0 && state.moves === 0) {
-    return "Tap a piece with brass rivets, here or on the model, to turn it a quarter. On a keyboard, arrow keys move around the map and Enter turns.";
-  }
-  if (state.leg === 1 && state.face.every((f) => f === 0)) {
-    return "Pieces with brass axles flip over. Their underside has a different trail printed on it.";
-  }
-  return null;
 }
 
 export function LegCard({ state, route, note }: Props) {
@@ -30,7 +20,6 @@ export function LegCard({ state, route, note }: Props) {
     );
   }
   const dest = TILES[leg.to]?.place ?? "";
-  const tip = hint(state);
   const status = route
     ? `Route open: ${route.length - 1} squares to ${dest}.`
     : `No way through to ${dest} (${gridRef(leg.to)}) yet.`;
@@ -43,16 +32,13 @@ export function LegCard({ state, route, note }: Props) {
         {leg.title}
       </h1>
       <p className="text-[12.5px] leading-snug text-cream/80 lg:text-[13px]">{leg.brief}</p>
-      {tip ? (
-        <p className="rounded-md border border-brass/50 bg-brass/10 px-3 py-1.5 text-[12px] lg:py-2 lg:text-[12.5px] leading-snug text-cream">
-          {tip}
-        </p>
-      ) : null}
       <p
+        id="route-status"
         aria-live="polite"
+        aria-atomic="true"
         className={`text-[13px] font-semibold ${route ? "text-vermilion-soft" : "text-cream/70"}`}
       >
-        {note || status}
+        {note ? `${note} ${status}` : status}
       </p>
     </section>
   );

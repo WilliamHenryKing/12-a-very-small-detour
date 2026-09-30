@@ -1,10 +1,11 @@
 // The pocket map: every piece is a keyboard-reachable button mirroring the model's state.
 import { type KeyboardEvent, useRef } from "react";
-import { COLS, cellOf, colOf, describeMask, gridRef, ROWS, rowOf } from "../game/edges";
+import { COLS, colOf, ROWS, rowOf } from "../game/edges";
 import { SQUARE_METRES, TILES } from "../game/map";
-import { canOperate, pathsAt } from "../game/rules";
+import { canOperate } from "../game/rules";
 import type { GameState } from "../game/types";
 import { MapFace } from "./MapFace";
+import { advancePhase, mapLabel, nextMapCell } from "./mapPresentation";
 
 interface Props {
   state: GameState;
@@ -12,6 +13,7 @@ interface Props {
   dest: number | null;
   walkerAt: number;
   active: number;
+  disabled?: boolean;
   onActive(cell: number): void;
   onHover(cell: number | null): void;
   onOperate(cell: number): void;
@@ -22,19 +24,8 @@ const COL_LABELS = Array.from({ length: COLS }, (_, c) => String.fromCharCode(65
 const ROW_LABELS = Array.from({ length: ROWS }, (_, r) => String(r + 1));
 const pct = (n: number, of: number) => `${(n / of) * 100}%`;
 
-function label(state: GameState, cell: number, dest: number | null) {
-  const tile = TILES[cell];
-  if (!tile) return "";
-  const parts = [`${gridRef(cell)}, ${tile.place}`, describeMask(pathsAt(state, cell))];
-  if (cell === state.at) parts.push("you are here");
-  if (cell === dest) parts.push("destination");
-  if (canOperate(state, cell)) parts.push(tile.kind === "turn" ? "press to turn" : "press to flip");
-  else if (tile.kind !== "fixed" && !state.finished) parts.push("hinge still pinned");
-  return parts.join(", ");
-}
-
 export function PocketMap(props: Props) {
-  const { state, lit, dest, walkerAt, active } = props;
+  const { state, lit, dest, walkerAt, active, disabled = false } = props;
   const buttons = useRef<(HTMLButtonElement | null)[]>([]);
   // Accumulated turns so the paper always swings forward, like the model.
   const spun = useRef<number[]>(TILES.map(() => 0));
@@ -42,19 +33,15 @@ export function PocketMap(props: Props) {
   TILES.forEach((_, c) => {
     const s = spun.current;
     const f = flipped.current;
-    s[c] = (s[c] ?? 0) + (((((state.rot[c] ?? 0) - (s[c] ?? 0)) % 4) + 4) % 4);
-    f[c] = (f[c] ?? 0) + (((((state.face[c] ?? 0) - (f[c] ?? 0)) % 2) + 2) % 2);
+    s[c] = advancePhase(s[c] ?? 0, state.rot[c] ?? 0, 4);
+    f[c] = advancePhase(f[c] ?? 0, state.face[c] ?? 0, 2);
   });
 
   const move = (e: KeyboardEvent, cell: number) => {
-    const d = { ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0] }[
-      e.key
-    ];
-    if (!d) return;
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    const next = nextMapCell(cell, e.key);
+    if (next === null) return;
     e.preventDefault();
-    const c = Math.min(COLS - 1, Math.max(0, colOf(cell) + (d[0] ?? 0)));
-    const r = Math.min(ROWS - 1, Math.max(0, rowOf(cell) + (d[1] ?? 0)));
-    const next = cellOf(c, r);
     if (next !== cell) props.onNudge();
     props.onActive(next);
     buttons.current[next]?.focus();
@@ -79,10 +66,10 @@ export function PocketMap(props: Props) {
         </div>
         <fieldset
           className="absolute m-0 min-w-0 border-0 p-0 inset-[7%] grid grid-cols-5 grid-rows-5 gap-[3px]"
-          aria-label="Pocket map, five by five pieces. Arrow keys move, Enter turns or flips."
+          aria-label="Pocket map, five by five pieces. Arrow keys move, Enter or Space turns or flips."
         >
           {TILES.map((tile, cell) => {
-            const loose = canOperate(state, cell);
+            const loose = !disabled && canOperate(state, cell);
             const turn = spun.current[cell] ?? 0;
             const flip = flipped.current[cell] ?? 0;
             return (
@@ -92,12 +79,16 @@ export function PocketMap(props: Props) {
                   buttons.current[cell] = el;
                 }}
                 type="button"
+                data-cell={cell}
                 tabIndex={cell === active ? 0 : -1}
-                aria-label={label(state, cell, dest)}
+                aria-label={mapLabel(state, cell, dest, walkerAt, disabled, lit.has(cell))}
                 aria-disabled={!loose}
+                aria-keyshortcuts={loose ? "Enter Space" : undefined}
                 data-loose={loose || undefined}
                 className="map-cell"
-                onClick={() => props.onOperate(cell)}
+                onClick={() => {
+                  if (!disabled) props.onOperate(cell);
+                }}
                 onKeyDown={(e) => move(e, cell)}
                 onFocus={() => {
                   props.onActive(cell);
